@@ -1,0 +1,607 @@
+---
+title: "filmweb_scrapping"
+output: html_document
+date: "2024-10-24"
+---
+
+```{r}
+library(rvest)
+library(tidyverse)
+library(purrr)
+library(rio)
+library(RSelenium)
+library(chron)
+```
+
+### Open web driver
+
+```{r}
+driver <- rsDriver(browser = "firefox", verbose=F, chromever = NULL)
+remote_driver <- driver[["client"]]
+remote_driver$setTimeout(type = "session", milliseconds = 0)
+```
+
+### Rated films
+
+```{r}
+# https://www.filmweb.pl/user/David_Frost#/votes/film
+# https://www.filmweb.pl/user/Tomasz_Hanusek#/votes/film
+remote_driver$navigate("https://www.filmweb.pl/user/David_Frost#/votes/film")
+Sys.sleep(10)
+
+nameElem <- remote_driver$findElement(using = "xpath", value = '//section/div[2]/div[1]/div[3]/a/div/div')
+names <- nameElem$getElementText()
+
+
+linkElem <- remote_driver$findElement(using = "xpath", value = '//section/div[2]/div[1]/div[3]/a')
+links <- linkElem$getElementAttribute("href")
+
+
+ratingElem <- remote_driver$findElement(using = "xpath", value = 
+                                       '//section/div[2]/div[1]/div[2]/span[1]/span[2]/span')
+ratings <- ratingElem$getElementText()
+
+agree_terms <-  remote_driver$findElement(using = "xpath", value = "/html/body/div[1]/div/div/div/div/div/div[2]/button[2]")
+agree_terms$clickElement()
+Sys.sleep(35)
+
+start_time <- Sys.time()
+
+bodyEl <- remote_driver$findElement("css", "body")
+flag <- TRUE
+counter <- 0
+n <- 20
+while(flag){
+    counter <- counter + 1
+    for(i in 1:n){
+        bodyEl$sendKeysToElement(list("key"="page_down"))
+        Sys.sleep(5)
+    }
+    if(exists("pagesource")){
+        if(pagesource == remote_driver$getPageSource()[[1]]){
+            flag <- FALSE
+            writeLines(paste0("Scrolled down ",n*counter," times.\n"))
+        } else {
+            pagesource <- remote_driver$getPageSource()[[1]]
+        }
+    } else {
+        pagesource <- remote_driver$getPageSource()[[1]]
+    }
+}
+
+end_time <- Sys.time()
+time <- end_time - start_time
+print(paste("Scrolling loop exexcution: ", time))
+
+for (i in 3001:3100) {
+  name_path <- "//section/div[2]/div[{{value}}]/div[3]/a/div/div"
+  name_path <- sub("\\{\\{value\\}\\}", as.character(i), name_path)
+  
+  nameElem <- remote_driver$findElement(using = "xpath", value = name_path)
+  
+  names <- append(names, nameElem$getElementText())
+  
+  
+  link_path <- "//section/div[2]/div[{{value}}]/div[3]/a"
+  link_path <- sub("\\{\\{value\\}\\}", as.character(i), link_path)
+  
+  linkElem <- remote_driver$findElement(using = "xpath", value = link_path)
+  
+  links <- append(links, linkElem$getElementAttribute("href"))
+  
+  
+  rating_path <- "//section/div[2]/div[{{value}}]/div[2]/span[1]/span[2]/span"
+  rating_path <- sub("\\{\\{value\\}\\}", as.character(i), rating_path)
+  
+  ratingElem <- remote_driver$findElement(using = "xpath", value = rating_path)
+  
+  ratings <- append(ratings, ratingElem$getElementText())
+}
+```
+
+### Favorite films
+
+```{r}
+# https://www.filmweb.pl/user/David_Frost#/favorites/film
+# https://www.filmweb.pl/user/Tomasz_Hanusek#/favorites/film
+remote_driver$navigate("https://www.filmweb.pl/user/David_Frost#/favorites/film")
+Sys.sleep(10)
+
+namefavElem <- remote_driver$findElement(using="xpath", value='//section/div/div[1]/div[3]/a/div/div')
+names_fav <- namefavElem$getElementText()
+
+bodyEl <- remote_driver$findElement("css", "body")
+flag <- TRUE
+counter <- 0
+n <- 50
+while(flag){
+    counter <- counter + 1
+    for(i in 1:n){
+        bodyEl$sendKeysToElement(list("key"="page_down"))
+        Sys.sleep(5)
+    }
+    if(exists("pagesource")){
+        if(pagesource == remote_driver$getPageSource()[[1]]){
+            flag <- FALSE
+            writeLines(paste0("Scrolled down ",n*counter," times.\n"))
+        } else {
+            pagesource <- remote_driver$getPageSource()[[1]]
+        }
+    } else {
+        pagesource <- remote_driver$getPageSource()[[1]]
+    }
+}
+
+for (i in 2:423) {
+  name_fav_path <- "//section/div/div[{{value}}]/div[3]/a/div/div"
+  name_fav_path <- sub("\\{\\{value\\}\\}", as.character(i), name_fav_path)
+  
+  namefavElem <- remote_driver$findElement(using = "xpath", value = name_fav_path)
+  
+  names_fav <- append(names_fav, namefavElem$getElementText())
+}
+```
+
+### Get film data - first one
+
+```{r}
+remote_driver$navigate(paste0(data[1,4]))
+
+name_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/h1')
+names_spec <- name_spec$getElementText()
+
+year_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/h2')
+years_spec <- year_spec$getElementText()
+  
+if (as.numeric(years_spec) %in% c(1900:2025)) {
+  time_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/div[1]')
+  times_spec <- time_spec$getElementText()
+} else {
+  year_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/h2/div')
+  years_spec <- year_spec$getElementText()
+
+  time_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/div[1]')
+  times_spec <- time_spec$getElementText()
+}
+
+#av_rate_spec <- tryCatch(
+#  {
+#    remote_driver$findElement(using="xpath",
+#                          value='//section/div/div[2]/div/div/div[2]/div[4]/div/div[1]/div[1]/span[1]')
+#  },
+#  error = function(e) {
+#    NULL
+#  }
+#)
+#
+#av_rates_spec <- if (!is.null(av_rate_spec)) {
+#  av_rate_spec <- remote_driver$findElement(using="xpath",
+#                          value='//section/div/div[2]/div/div/div[2]/div[4]/div/div[1]/div[1]/span[1]')
+#  av_rate_spec$getElementText()
+#} else {
+#  av_rate_spec <- remote_driver$findElement(using="xpath",
+#                              value='//section/div/div[2]/div/div/div[2]/div[3]/div/div[1]/div[1]/span[1]')
+#  av_rates_spec <- av_rate_spec$getElementText()
+#}
+
+av_rate_spec <- tryCatch(
+  {
+    remote_driver$findElement(using="xpath",
+                           value='//section/div/div[2]/div/div/div[2]/div[2]/div/div[1]/div[1]/span[1]')
+   },
+   error = function(e) {
+     NULL
+   }
+)
+  
+av_rates_spec <- if (!is.null(av_rate_spec)) {
+  av_rate_spec <- remote_driver$findElement(using="xpath",
+                           value='//section/div/div[2]/div/div/div[2]/div[2]/div/div[1]/div[1]/span[1]')
+   av_rate_spec$getElementText()
+} else {
+  av_rates_spec <- NA
+}
+
+after_credit <- remote_driver$findElement(using="xpath", value='//section/div/div/div[3]')
+is_after_credit <- after_credit$getElementAttribute("class")
+
+if (is_after_credit != "filmPosterSection__postCreditScenes") {
+  director_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/h3[1]/span[2]/a/span[2]')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  directors_spec <- if (!is.null(director_spec)) {
+    director_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/h3[1]/span[2]/a/span[2]')
+    director_spec$getElementText()
+  } else {
+    directors_spec <- NA
+  }
+  
+  country_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/h3[3]/span[2]/a[1]/span')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  countries_spec <- if (!is.null(country_spec)) {
+    country_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/h3[3]/span[2]/a[1]/span')
+    country_spec$getElementText()
+  } else {
+    countries_spec <- NA
+  }
+  
+  genre1_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[3]/div[1]/span')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  genres1_spec <- if (!is.null(genre1_spec)) {
+    genre1_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[3]/div[1]/span')
+    genre1_spec$getElementText()
+  } else {
+    genres1_spec <- NA
+  }
+  
+  genre2_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[3]/div[2]/span')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  genres2_spec <- if (!is.null(genre2_spec)) {
+    genre2_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[3]/div[2]/span')
+    genre2_spec$getElementText()
+  } else {
+    genres2_spec <- NA
+  }
+} else {
+  director_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[5]/h3[1]/span[2]/a/span[2]')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  directors_spec <- if (!is.null(director_spec)) {
+    director_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[5]/h3[1]/span[2]/a/span[2]')
+    director_spec$getElementText()
+  } else {
+    directors_spec <- NA
+  }
+  
+  country_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[5]/h3[3]/span[2]/a[1]/span')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  countries_spec <- if (!is.null(country_spec)) {
+    country_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[5]/h3[3]/span[2]/a[1]/span')
+    country_spec$getElementText()
+  } else {
+    countries_spec <- NA
+  }
+  
+  genre1_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/div[1]/span')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  genres1_spec <- if (!is.null(genre1_spec)) {
+    genre1_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/div[1]/span')
+    genre1_spec$getElementText()
+  } else {
+    genres1_spec <- NA
+  }
+  
+  genre2_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/div[2]/span')
+    },
+    error = function(e) {
+      NULL
+    }
+  )
+  genres2_spec <- if (!is.null(genre2_spec)) {
+    genre2_spec <- remote_driver$findElement(using="xpath",
+                            value='//section/div/div/div[4]/div[2]/span')
+    genre2_spec$getElementText()
+  } else {
+    genres2_spec <- NA
+  }
+}
+
+films_data <- data.frame(unlist(names_spec), unlist(years_spec), unlist(times_spec), unlist(av_rates_spec),
+                         unlist(directors_spec), unlist(countries_spec), unlist(genres1_spec),
+                         unlist(genres2_spec))
+```
+
+### Get other films data
+
+```{r}
+start_time <- Sys.time()
+
+for (i in 2815:3100) {
+  remote_driver$navigate(paste0(data[i,4]))
+
+  name_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/h1')
+  names_spec <- name_spec$getElementText()
+  
+  year_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/h2')
+  years_spec <- year_spec$getElementText()
+    
+  if (as.numeric(years_spec) %in% c(1900:2025)) {
+    time_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/div[1]')
+    times_spec <- time_spec$getElementText()
+  } else {
+    year_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/h2/div')
+    years_spec <- year_spec$getElementText()
+  
+    time_spec <- remote_driver$findElement(using="xpath", value='//section/div/div[2]/div/div/div[2]/div[1]')
+    times_spec <- time_spec$getElementText()
+  }
+  
+  av_rate_spec <- tryCatch(
+    {
+      remote_driver$findElement(using="xpath",
+                             value='//section/div/div[2]/div/div/div[2]/div[2]/div/div[1]/div[1]/span[1]')
+     },
+     error = function(e) {
+       NULL
+     }
+  )
+    
+  av_rates_spec <- if (!is.null(av_rate_spec)) {
+    av_rate_spec <- remote_driver$findElement(using="xpath",
+                             value='//section/div/div[2]/div/div/div[2]/div[2]/div/div[1]/div[1]/span[1]')
+     av_rate_spec$getElementText()
+  } else {
+    av_rates_spec <- NA
+  }
+  
+  after_credit <- remote_driver$findElement(using="xpath", value='//section/div/div/div[3]')
+  is_after_credit <- after_credit$getElementAttribute("class")
+  
+  if (is_after_credit != "filmPosterSection__postCreditScenes") {
+    director_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/h3[1]/span[2]/a/span[2]')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    directors_spec <- if (!is.null(director_spec)) {
+      director_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/h3[1]/span[2]/a/span[2]')
+      director_spec$getElementText()
+    } else {
+      directors_spec <- NA
+    }
+    
+    country_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/h3[3]/span[2]/a[1]/span')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    countries_spec <- if (!is.null(country_spec)) {
+      country_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/h3[3]/span[2]/a[1]/span')
+      country_spec$getElementText()
+    } else {
+      countries_spec <- NA
+    }
+    
+    genre1_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[3]/div[1]/span')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    genres1_spec <- if (!is.null(genre1_spec)) {
+      genre1_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[3]/div[1]/span')
+      genre1_spec$getElementText()
+    } else {
+      genres1_spec <- NA
+    }
+    
+    genre2_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[3]/div[2]/span')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    genres2_spec <- if (!is.null(genre2_spec)) {
+      genre2_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[3]/div[2]/span')
+      genre2_spec$getElementText()
+    } else {
+      genres2_spec <- NA
+    }
+  } else {
+    director_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[5]/h3[1]/span[2]/a/span[2]')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    directors_spec <- if (!is.null(director_spec)) {
+      director_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[5]/h3[1]/span[2]/a/span[2]')
+      director_spec$getElementText()
+    } else {
+      directors_spec <- NA
+    }
+    
+    country_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[5]/h3[3]/span[2]/a[1]/span')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    countries_spec <- if (!is.null(country_spec)) {
+      country_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[5]/h3[3]/span[2]/a[1]/span')
+      country_spec$getElementText()
+    } else {
+      countries_spec <- NA
+    }
+    
+    genre1_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/div[1]/span')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    genres1_spec <- if (!is.null(genre1_spec)) {
+      genre1_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/div[1]/span')
+      genre1_spec$getElementText()
+    } else {
+      genres1_spec <- NA
+    }
+    
+    genre2_spec <- tryCatch(
+      {
+        remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/div[2]/span')
+      },
+      error = function(e) {
+        NULL
+      }
+    )
+    genres2_spec <- if (!is.null(genre2_spec)) {
+      genre2_spec <- remote_driver$findElement(using="xpath",
+                              value='//section/div/div/div[4]/div[2]/span')
+      genre2_spec$getElementText()
+    } else {
+      genres2_spec <- NA
+    }
+  }
+  
+  films_data_spec <- data.frame(unlist(names_spec), unlist(years_spec), unlist(times_spec),
+                           unlist(av_rates_spec), unlist(directors_spec), unlist(countries_spec),
+                           unlist(genres1_spec),unlist(genres2_spec))
+  
+  films_data <- rbind(films_data, films_data_spec)
+}
+
+end_time <- Sys.time()
+time <- end_time - start_time
+print(paste("Scrapping loop exexcution: ", time))
+```
+
+### Close web driver
+
+```{r}
+remote_driver$close()
+driver$server$stop()
+```
+
+### Organize current data
+
+```{r}
+data <- data.frame(unlist(names), unlist(ratings), unlist(links))
+names(data) <- c("name", "rating", "link")
+data <- data %>% 
+  mutate(rating=as.numeric(rating))
+
+fav_data_frame <- data.frame(unlist(names_fav))
+names(fav_data_frame) <- c("name")
+
+data$is_fav <- data$name %in% fav_data_frame$name
+
+data <- data[, c(1,2,4,3)]
+
+genr_names <- c("Świąteczny", "Akcja", "Animacja", "Animacja dla dorosłych", "Anime", "Baśń", "Biblijny", "Biograficzny", "Czarna komedia", "Dla dzieci", "Dla młodzieży", "Dokumentalizowany", "Dokumantalny", "Dramat", "Dramat historyczny", "Dramat obyczajowy", "Dramat sądowy", "Dreszczowiec", "Erotyczny", "Fabularyzowany dok.", "Familijny" , "Fantasy", "Film-Noir", 'Gansterski', "Groteska filmowa", "Historyczny", "Horror", "Katastroficzny", "Komedia", "Komedia kryminalna", "Komedia obycz.", "Komedia rom.", "Kostiumowy", "Krótkometrażowy", "Kryminał", "Melodramat", "Musical", "Muzyczny", "Niemy", "Obyczajowy", "Poetycki", "Polityczny", "Propagandowy", "Przygodowy", "Przyrodniczy", "Psychologiczny", "Religijny", "Romans", "Satyra", "Sci-Fi", "Sensacyjny", "Sportowy", "Surrealistyczny", "Szpiegowski", "Sztuki walki", "Thriller", "True crime", "Western", "Wojenny", "XXX")
+
+names(films_data) <- c("name", "year", "time", "av_rating", "director", "country", "genre1", "genre2")
+films_data <- films_data %>%
+  mutate(year = as.numeric(year)) %>%
+  mutate(av_rating = gsub(",", ".", av_rating)) %>%
+  mutate(av_rating = as.numeric(av_rating)) %>%
+  mutate(
+    time = gsub(" ", "", time),
+    time = case_when(
+      grepl("h", time) & grepl("m", time) ~ {
+        hours <- as.numeric(gsub("h.*", "", time))
+        minutes <- as.numeric(gsub(".*h|m", "", time))
+        hours * 60 + minutes
+      },
+      grepl("h", time) ~ {
+        hours <- as.numeric(gsub("h", "", time))
+        hours * 60
+      },
+      grepl("m", time) ~ {
+        as.numeric(gsub("m", "", time))
+      },
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  mutate(genre2 = ifelse(genre2 %in% genr_names, genre2, NA))
+
+films_data$us_rating <- data$rating[match(films_data$name, data$name)];
+
+films_data$is_fav <- films_data$name %in% fav_data_frame$name
+
+films_data <- films_data %>%
+  filter(!is.na(name) & !is.na(year)) %>%
+  mutate(decade = floor(year / 10) * 10)
+
+#write.csv(films_data, "films_data-complete.csv", row.names = FALSE)
+#write.csv(data, "data-complete.csv", row.names = FALSE)
+#films_data <- read.csv("films_data-complete.csv")
+```
