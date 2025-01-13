@@ -7,7 +7,6 @@ date: "2024-10-24"
 ```{r}
 library(rvest)
 library(tidyverse)
-library(purrr)
 library(rio)
 library(RSelenium)
 library(chron)
