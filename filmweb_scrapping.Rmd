@@ -9,7 +9,6 @@ library(rvest)
 library(tidyverse)
 library(rio)
 library(RSelenium)
-library(chron)
 ```
 
 ### Open web driver
