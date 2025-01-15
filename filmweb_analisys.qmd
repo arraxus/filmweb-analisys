@@ -11,7 +11,7 @@ format:
     toc: true
     toc-title: "Spis treści"
     toc-location: left
-    number-sections: true
+    number-sections: false
     code-fold: true
     code-summary: "Pokaż kod"
     title-block-banner: "./banner-85.png"
