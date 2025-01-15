@@ -1,0 +1,672 @@
+---
+title: "Statystyka filmów obejrzanych przez użytkownika Dawid Adamek"
+subtitle: "Analiza danych zebranych z portalu Filmweb (02.01.2025)"
+author: "Tomasz Hanusek"
+format:
+  html:
+    include-before-body:
+      - file: github-corner.html
+    toc: true
+    toc-title: "Spis treści"
+    toc-location: left
+    number-sections: true
+    code-fold: true
+    code-summary: "Pokaż kod"
+    title-block-banner: "./banner-85.png"
+editor: visual
+lang: pl
+include-in-header:
+  - text: |
+      <link rel = "shortcut icon" href = "favicon.svg" />
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(rio)
+library(leaflet)
+library(rnaturalearth)
+library(sf)
+library(plotly)
+library(DT)
+```
+
+```{r include=FALSE}
+films_data <- read.csv("films_data-complete.csv")
+```
+
+## Wstęp
+
+Celem niniejszej analizy jest zbadanie statystyk filmów obejrzanych przez użytkownika portalu **Filmweb** i wykonanie swego rodzaju podsumowania. Do tego celu wybrałem publicznie dostępne dane z profilu użytkownika **Dawida Adamka**, ze względu na obszerną bazę filmów. Jest on recenzentem filmowym, co może wpływać na charakterystykę jego ocen, możemy spodziewać się bardziej krytycznego spojrzenia bądź specyficznej preferencji gatunkowej. Analizie poddano m.in. liczbę obejrzanych filmów, rozkład ocen, najpopularniejsze gatunki i reżyserów, a także trend ocen w różnych latach i dekadach produkcji filmów.
+
+Do obrania tego tematu zainspirowały mnie projekty użytkowników platformy GitHub obrazujące w podobny sposób statystyki użytkowników zagranicznego portalu o filmach Letterboxd i brak odpowiedników dla polskiego Filmwebu.
+
+**Problem badawczy:** Zrozumienie preferencji filmowych użytkownika, wzorców oceniania oraz trendów wynikających z listy obejrzanych filmów.
+
+**Hipotezy:**
+
+1.  **Preferencja dla starszych dekad**\
+    Dawid Adamek wystawia istotnie wyższe oceny filmom wydanym w odległych latach w porównaniu z produkacjami współczesnymi w szczególności z ostatnich lat.
+
+2.  **Wpływ „selektywnego oglądania” kina klasycznego**\
+    Filmy starsze (zwłaszcza niszowe gatunki i powszechnie uznani reżyserzy) są przez Dawida oglądane w sposób wysoce wybiórczy, co skutkuje bardzo wysoką średnią ocen w tych kategoriach.
+
+3.  **Dominacja kina amerykańskiego przy jednoczesnym docenianiu produkcji innych państw**\
+    Mimo że filmy z USA dominują rynek filmowy i stanowią największą część obejrzanych tytułów, kino europejskie i azjatyckie znajduje uznanie oraz wyższe noty niż filmy amerykańskiej produkcji.
+
+4.  **Silna korelacja między uznaną filmografią reżysera a wysoką oceną**\
+    Twórcy posiadający w dorobku dzieła klasyczne i uznane za kanon filmografii otrzymują przeciętnie wyższe noty, co wskazuje na wysoki wpływ renomy i jakości artystycznej na ocenę.
+
+5.  **Rozbieżność oceny Dawida i średniej oceny widzów w przypadku filmów najsłabszych**\
+    Ogół publiki ma tendecję do wyższej oceny produkcji w środwiskach filmowych uznanych za niekoniecznie udane lub wyjatkowo słabe.
+
+## Opis zbioru danych
+
+Zbiór danych składa się z listy wszystkich filmów obejrzanych przez Dawida Adamka (z portalu Filmweb, stan na dzień 02.01.2025) wraz z jego ocenami. Dodatkowo dołączono informacje o samych filmach, takie jak:
+
+-   Rok produkcji (`year`)
+
+-   Reżyser (`director`)
+
+-   Gatunek filmu (`genre1`, `genre2`)
+
+-   Kraj produkcji (`country`)
+
+-   Długość filmu w minutach (`time`)
+
+-   Średnia ocena użytkowników na Filmwebie (`av_rating`)
+
+-   Ocena wystawiona przez Dawida Adamka (`us_rating`)
+
+-   Zmienna logiczna informująca, czy film został dodany do ulubionych (`is_fav`)
+
+-   Dekada powstania filmu (`decade`)
+
+Liczbowo mamy zatem pięć zmiennych typu numerycznego (czas trwania, średnia ocena, ocena Dawida, rok, dekada) oraz trzy zmienne znakowe (reżyser, gatunek, kraj) i jedną zmienną logiczną (ulubione/nieulubione).
+
+Poniżej znajduje się zbiór wszystkich danych w formie interaktywnej tabeli z możliwością wyszukiwania i sortowania konkretnych wartości:
+
+```{r}
+datatable(films_data)
+```
+
+## Przetworzenie i oczyszczenie danych
+
+Scrapping danych z portalu Filmweb oraz przetworzenie i oczyszczenie danych odbyło się w osobnym pliku typu `Markdown` ze względu na wygodę oraz przejrzystość kodu. Konstrukcja portalu i problemy z wczytywaniem kolejnych sekcji strony z filmami nie pozwoliły w pewnych etapach na pełną automatyzację pobierania danych oraz wymagały stałego nadzoru nad postępem.
+
+Jako pierwsze została pobrana lista filmów obejrzanych wraz z ocenami i odnośnikami do stron danych filmów. Następnie korzystając z tych danych utworzenie zbioru danych o samych filmach. Na koniec wszystkie zebrane dane zostały scalone w finalny zbiór przeznaczony do wizualizacji, analizy i podsumowania. Dane wymagały kilkuratnej zmiany typu ze znakowego na numeryczny oraz przetworzenia znakowego zapisu czasu trwania w godzinach i minutach na numeryczny w minutach.
+
+**Użyte bilioteki:**
+
+-   `rvest` i `RSelenium` - pobrania informacji z sieci
+
+-   `tidyverse` (`dplyr`) - przetworzenie i oczyszczenie danych
+
+-   `rio` - zapis i odczyt danych z pliku `.csv`
+
+-   `tidyverse` (`ggplot`), `leaflet`, `rnaturalearth`, `sf`, `plotly` i `DT` - wizualizacja
+
+## Analiza i wizualizacje
+
+### Podsumowanie ilości filmów, godzin itp.
+
+```{r}
+hours_watched <- films_data %>%
+  summarise(hours = sum(time)/60)
+
+number_of_films <- films_data %>%
+  summarise(count = n())
+
+number_of_directors <- films_data %>% 
+  filter(!is.na(director)) %>% 
+  summarise(count = n_distinct(director))
+
+number_of_countries <- films_data %>%
+  filter(!is.na(country)) %>% 
+  summarise(count = n_distinct(country))
+
+number_of_favorites <- films_data %>%
+  summarise(count = sum(is_fav))
+
+paste("Godziny:", hours_watched$hours, "Filmy:", number_of_films$count, "Ulubione:",
+      number_of_favorites$count, "Reżyserzy:", number_of_directors$count, "Kraje:",
+      number_of_countries$count)
+```
+
+**Wnioski:**
+
+-   Ilość obejrzanych filmów i co za tym idzie ogrom czasu przy nich spędzonego wskazuje na ogromną więdze na ich temat i przy tym doświadczenie i dużą skuteczność ich ceny w roli recenzenta.
+
+-   Liczba unikalnych reżyserów wskazuje na duże zróżnicowanie repertuaru.
+
+-   Ilość filmów ulubionych może wydawać się spora jednak jest to niewielki procent wszystkich, co za tym idzie Dawid wysoko ceni sobie te filmy, muszą się one wyraźnie odznaczać na tle reszty, co świadczy o jego bardzo konkretnych preferencjach.
+
+```{r include=FALSE}
+knitr::opts_chunk$set(fig.height = 7.6)
+```
+
+### Najwyższe i najniższe oceny w porównaniu do średniej
+
+::: {.panel-tabset .nav-pills}
+#### Najwyżej ocenione
+
+```{r}
+highest_rated <- films_data %>%
+  filter(us_rating == max(us_rating, na.rm = TRUE)) %>% 
+  select(name, av_rating, us_rating) %>% 
+  filter(row_number() != 17)
+
+highest_rated_plot <- highest_rated %>% 
+  ggplot(aes(x = reorder(name, av_rating), y = av_rating, text = paste(
+      "Tytuł:", name,
+      "<br>Średnia ocena:", av_rating,
+      "<br>Ocena Dawida:", us_rating)))+
+  geom_bar(stat = "identity", color = "lightgreen")+
+  geom_hline(yintercept = max(highest_rated$us_rating), color = "red")+
+  coord_flip()+
+  labs(y = "Średnia ocena (Filmweb)", 
+       title = "Najwyżej ocenione filmy przez Dawida (vs średnia)")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_y_continuous(
+    breaks = seq(0, 9, by = 1),
+    limits = c(0, 9))
+
+ggplotly(highest_rated_plot, tooltip = "text") %>% 
+  layout(title = list(x = 0.8))
+```
+
+#### Najniżej ocenione
+
+```{r}
+lowest_rated <- films_data %>%
+  filter(us_rating == min(us_rating, na.rm = TRUE)) %>% 
+  select(name, av_rating, us_rating)
+
+lowest_rated_plot <- lowest_rated %>% 
+  ggplot(aes(x = reorder(name, av_rating), y = av_rating, text = paste(
+      "Tytuł:", name,
+      "<br>Średnia ocena:", av_rating,
+      "<br>Ocena Dawida:", us_rating)))+
+  geom_bar(stat = "identity", color = "orange")+
+  geom_hline(yintercept = min(lowest_rated$us_rating), color = "red")+
+  coord_flip()+
+  labs(y = "Średnia ocena (Filmweb)",
+       title = "Najniżej ocenione filmy przez Dawida (vs średnia)")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_y_continuous(
+    breaks = seq(0, 8, by = 1),
+    limits = c(0, 8))
+
+ggplotly(lowest_rated_plot, tooltip = "text") %>% 
+  layout(title = list(x = 0.8))
+```
+:::
+
+**Wnioski:**
+
+-   **Filmy najwyżej ocenione:**
+
+    Wśród najwyżej ocenionych tytułów dominują uznane klasyki i filmy powszechnie uważane za kultowe lub za arcydzieła kina (np. *Dwunastu gniewnych ludzi*, *Ojciec chrzestny, Czas Apokalipsy*). Niemal wszystkie wymienione filmy mają średnią ocenę powyżej 7 w serwisie Filmweb, co potwierdza ich reputację wśród szerokiej publiczności. Można wnioskować, że Dawid w przypadku tych tytułów zgadza się z ogólnie przyjętą wysoką oceną. Świadczy to o dużym pokryciu gustu użytkownika z „klasyką” czy też najwyżej ocenianymi filmami w ogólnych rankingach.
+
+-   **Filmy najniżej ocenione:**
+
+    W więkoszości widać filmy powszechnie uznawanym za bardzo słabe lub wręcz kuriozalne, (np. *Ghostland*, *Movie 43*, *Gulczas, a jak myślisz?*). W części filmów pomimo już niskiej oceny Dawid wystawił jeszcze niższą. Widać też filmy z nieco wyższą średnią, oznaczającą uznanie ich za dość przeciętne, natomiast Dawid wystawił im najniższą notę. Może to świadczyć o braku tolerancji wobec pewnych gatunków, stylu humoru czy jakości wykonania. Widnieją tu też filmy, wzbudzające skrajne emocje (np. *Ciemniejsza strona Greya*, *365 dni*). Ocena Dawida pokrywa się z ogólną opinią środowisk filmowych i większości widzów. Dawid stosuje najniższe oceny głównie wobec filmów ocenianych już przez szeroką publikę dość słabo (typowy kicz, filmowe wpadki).
+
+```{r include=FALSE}
+knitr::opts_chunk$set(fig.height = 5)
+```
+
+### Średnia ocen filmów ulubionych vs średnia ocen wszystkich filmów
+
+```{r}
+us_av_rating <- films_data %>% 
+  filter(!is.na(us_rating)) %>% 
+  summarise(average = mean(us_rating)) %>%
+  pull(average)
+
+us_fav_av_rating <- films_data %>%
+  filter(is_fav == TRUE, !is.na(us_rating)) %>%
+  summarise(average = mean(us_rating)) %>%
+  pull(average)
+
+av_fav <- data.frame(
+  group = c("Wszystkie filmy", "Filmy ulubione"),
+  average = c(us_av_rating, us_fav_av_rating)
+)
+
+av_fav %>% 
+  ggplot(aes(x = group, y = average, color = group))+
+  geom_bar(stat = "identity", width = 0.4, linewidth = 1)+
+  geom_text(aes(label = round(average,1)), vjust = 2, size = 5)+
+  labs(
+    title = "Porównanie średniej oceny filmów ulubionych i wszystkich",
+    x = "",
+    y = "Średnia ocena"
+  )+
+  theme_minimal()+
+  theme(legend.position = "none")
+```
+
+**Wnioski:**
+
+-   Spodziewamy się, że filmy oznaczone jako ulubione będą posiadały średnio wyższą ocenę niż całokształt obajrzanych produkcji. Powyżej widoczne porównanie potwierdza to przekonanie.
+
+### Ilość obejrzanych filmów i oceny względem roku produkcji
+
+::: {.panel-tabset .nav-pills}
+#### Ilość
+
+```{r}
+film_count_year <- films_data %>%
+  count(year, sort = TRUE)
+
+film_count_year_plot <- film_count_year %>% 
+  ggplot(aes(x = year, y = n, text = paste(
+      "Rok:", year,
+      "<br>Liczba filmów:", n)))+
+  geom_bar(stat = "identity", color = "lightblue")+
+  labs(x = "Rok produkcji", y = "Liczba filmów", 
+       title = "Ilość filmów względem roku produkcji")+
+  theme_minimal()+
+  scale_x_continuous(
+    breaks = seq(1920, 2025, by = 15),
+    limits = c(1920, 2025))+
+  scale_y_continuous(
+    breaks = seq(0, 180, by = 20),
+    limits = c(0, 180))
+
+ggplotly(film_count_year_plot, tooltip = "text")
+```
+
+#### Ocena
+
+```{r}
+av_rating_year <- films_data %>% 
+  filter(!is.na(us_rating)) %>% 
+  group_by(year) %>%
+  summarise(rating = mean(us_rating))
+
+av_rating_year_plot <- av_rating_year %>% 
+  ggplot(aes(x = year, y = rating, text = paste(
+      "Rok:", year,
+      "<br>Średnia ocena:", round(rating,1))))+
+  geom_bar(stat = "identity", color = "orange")+
+  labs(x = "Rok produkcji", y = "Średnia ocena Dawida", 
+       title = "Średnia ocena względem roku produkcji")+
+  theme_minimal()+
+  scale_x_continuous(
+    breaks = seq(1920, 2025, by = 15),
+    limits = c(1920, 2025))+
+  scale_y_continuous(
+    breaks = seq(0, 9, by = 1),
+    limits = c(0, 9))
+
+ggplotly(av_rating_year_plot, tooltip = "text")
+```
+:::
+
+**Wnioski:**
+
+-   **Ilość obejrzanych, a rok produkcji:**
+
+    Z wykresu widać, że aż do końca lat 70. Dawid obejrzał relatywnie mało filmów z danego roku. Następnie widać systematyczny wzrost, a prawdziwy skok liczby tytułów przypada na lata 90. i 2000+. Świadczy to o tym, że Dawid szczególnie intensywnie oglądał i recenzował współczesne kino, a także o tym, że w ostanich latach ilość produkcji wzrosła. Filmów z okresu wczesnego kina jest stosunkowo niewiele. Sugeruje to, że Dawid sięga czasem po stare filmy, ale stanowią one ułamek w stosunku do nowszych produkcji. Dawid ma na koncie znakomitą większość tytułów z ostatnich 20 lat, co potwierdza, że współczesne kino cieszy się u niego największym zainteresowaniem, zarówno z racji osobistych preferencji, recenzenckiego obowiązku, jak i szerokiej dostępności tych produkcji.
+
+-   **Średnia ocena względem roku produkcji:**
+
+    Na wykresie widać, że produkcje z lat 40., 50. czy 60. często otrzymywały noty 7+. Widoczny jest pewien spadek średnich ocen, gdy przechodzimy do lat 90., 2000. i 2010. Choć Dawid ogląda dużo nowszych filmów, to jednak rzadko przyznaje im równie wysokie noty co klasykom. Widoczny jest szacunek dla klasycznego kina, które ocenia wysoko. Współczesne filmy mają u niego bardziej zróżnicowane noty – stąd spadek średniej. Jednym z powodów może być fakt, że wybór starych filmów obejmuje głównie dzieła kultowe, a w nowszych rocznikach sporo jest produkcji przeciętnych lub słabych, które recenzuje choćby z ciekawości czy obowiązku pracy recenzenckiej.
+
+### Najwyżej oceniane dekady
+
+```{r}
+av_rating_decades <- films_data %>%
+  filter(!is.na(us_rating)) %>% 
+  group_by(decade) %>%
+  filter(n() >= 4) %>%
+  summarise(average = mean(us_rating)) %>%
+  arrange(desc(average))
+
+av_rating_decades_plot <- av_rating_decades %>% 
+  ggplot(aes(x = factor(decade), y = average, text = paste(
+    "Ocena:", round(average,1))))+
+  geom_bar(stat = "identity", color = "green", linewidth = 0.8)+
+  labs(x = "Dekada", y = "Średnia ocena Dawida", title = "Średnia ocena względem dekady")+
+  theme_minimal()
+
+ggplotly(av_rating_decades_plot, tooltip = "text")
+```
+
+**Wnioski:**
+
+-   Dawid wyraźnie docenia klasyczne kino, oceny filmów z dekad 1940-1960 sięgają do 7,5, co świadczy o wysokim uznaniu dla ówczesnej kinematografii. Może to wynikać z faktu, że sięgania po najbardziej znane arcydzieła, a mniej wartościowe produkcje są pomijane. W kolejnych dekadach (1970-1980) średnia pozostaje dosyć wysoka. Wiele tytułów z tego okresu jest postrzegana jako wyraźnie ponadprzeciętne.
+
+-   W kolejnych dekadach średnia stopniowo maleje, aż do 5,5. Bez wątpienia wpływ na to ma większa liczba obejrzanych filmów z tych lat (wiele średnich produkcji zaniża ogólną ocenę) oraz mniejsza selektywność (Dawid jako recenzent musiał oglądać więcej słabszych i typowo komercyjnych filmów).
+
+-   Najwyższe noty trafiają do filmów z okresu kina klasycznego, co wcale nie znaczy, że Dawid nie ceni współczesnych produkcji. Spośród nowszych dekad ogląda znaczną liczbę tytułów o zróżnicowanej jakości, co zaniża średnią.
+
+### Najpopularniejsze gatunki, reżyserzy i kraje
+
+::: {.panel-tabset .nav-pills}
+#### Gatunki
+
+```{r}
+genres <- suppressMessages(films_data %>%
+  pivot_longer(cols = c(genre1, genre2), names_to = "Column", values_to = "genre") %>%
+  filter(!is.na(genre)) %>% 
+  count(genre, sort = TRUE) %>% 
+  top_n(10))
+
+genres_plot <- genres %>% 
+  ggplot(aes(x=reorder(genre, n), y=n, text = paste(
+    "Ilość:", n)))+
+  geom_bar(stat = "identity", color = "orange", linewidth = 0.6)+
+  coord_flip()+
+  labs(x = "Gatunek", y = "Ilość filmów", title = "Najpopularniejsze gatunki")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_y_continuous(
+    breaks = seq(0, 1000, by = 200),
+    limits = c(0, 1000))
+
+ggplotly(genres_plot, tooltip = "text")
+```
+
+#### Reżyserzy
+
+```{r}
+directors <- suppressMessages(films_data %>% 
+  count(director, sort = TRUE) %>%
+  filter(!is.na(director)) %>%
+  top_n(10))
+
+directors_plot <- directors %>% 
+  ggplot(aes(x=reorder(director, n), y=n, text = paste(
+    "Ilość:", n)))+
+  geom_bar(stat = "identity", color = "green", linewidth = 0.6)+
+  coord_flip()+
+  labs(x = "Reżyser", y = "Ilość filmów", title = "Najpopularniejsi reżyserzy")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_y_continuous(
+    breaks = seq(0, 30, by = 10),
+    limits = c(0, 30))
+
+ggplotly(directors_plot, tooltip = "text")
+```
+
+#### Kraje
+
+```{r}
+countries <- suppressMessages(films_data %>%
+  count(country, sort = TRUE) %>%
+  filter(!is.na(country)) %>%
+  top_n(10) %>% 
+  filter(row_number() <= n()-1))
+
+countries_plot <- countries %>% 
+  ggplot(aes(x=reorder(country, n), y=n, text = paste(
+    "Ilość:", n)))+
+  geom_bar(stat = "identity", color = "lightblue", linewidth = 0.7)+
+  coord_flip()+
+  labs(x = "Kraj", y = "Ilość filmów", title = "Najpopularniejsze kraje")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_x_discrete(labels=c("Włochy", "Dania", "Australia", "Niemcy", 
+                            "Japonia", "Kanada", "Francja", "Wielka Brytania",
+                            "Polska", "USA"))
+
+ggplotly(countries_plot, tooltip = "text")
+```
+:::
+
+**Wnioski:**
+
+-   **Najpopularniejsze gatunki:**
+
+    Dramat jest zdecydowanym liderem, co nie dziwi, ponieważ dramat bywa pojemną kategorią, zaliczającą zarówno filmy obyczajowe, psychologiczne, historyczne, jak i sensacyjne. Komedia zajmuje drugie miejsce, wynika to z faktu, że takie filmy są często masowo powstającymi produkcjami. Akcja, Sci-Fi i thriller są również licznie reprezentowane, co wskazuje na zamiłowanie, bądź konieczność oglądania widowiskowych, czasem popularnych blockbusterów. Kolejne gatunki dalej reprezntują liczną grupę, co świadczy o wszechstronnym repertuarze, ale również wynika z obowiązków recenzenta filmów.
+
+-   **Najpopularniejsi reżyserzy:**
+
+    Blisko 30 tytułów Woodiego Allena może świadczyć o dużej sympatii lub po prostu chęci zapoznania się z jego bardzo obszerną filmografią. To zdecydowanie stawia go jako lidera. Steven Spielbarg, Ridley Scott i Martin Scorsese również posiadają bogaty dorobek, a jednocześnie ich filmy często zaliczane są do klasyki współczesnego kina, co przekłada się na ich wysoką pozycję. Zastanawiająca, może być obecność Patryka Vegi wśród tak uznanych reżyserów, lecz jego dorobek jest również spory, a obecność w zbiorze Dawida wskazuje na recenzencki obowiązek oglądania nowych filmów, szczególnie rodzimej produkcji. Lista sugeruje nastawienie na wielokrotnie nagradzanych reżyserów , ale i na twórców uznawanych za ciekawych czy kontrowersyjnych.
+
+<!-- -->
+
+-   **Najpopularniejsze kraje:**
+
+    Prawie 2000 filmów z USA odzwierciedla dominację kinematografii amerykańskiej na rynku światowym. Wiele dostępnych platform, streamingów czy kin prezentuje głównie filmy z USA. To również efekt masowej produkcji w Hollywood. Pozycja Polski sugeruje, że Dawid chętnie sięga po krajowe kino, co jest związane z miejscem zamieszkania, zainteresowaniem kinem narodowym. Brytyjskie i francuskie kino ma długą tradycję, stąd wysoka pozycja. Dominacja USA jest czymś naturalnym w skali globalnej. Polski wynik plasuje się wysoko ze względów kulturowych i językowych. Różnorodność pozostałych krajów potwierdza, że Dawid sięga także po kino światowe, choć już w mniejszej liczbie.
+
+### Średnio najwyżej oceniani gatunki, reżyserzy i kraje
+
+::: {.panel-tabset .nav-pills}
+#### Gatunki
+
+```{r}
+av_rating_genres <- suppressMessages(films_data %>%
+  pivot_longer(cols = c(genre1, genre2), names_to = "Column", values_to = "genre") %>%
+  filter(!is.na(us_rating) & !is.na(genre)) %>%
+  group_by(genre) %>%
+  filter(n() >= 4) %>%
+  summarise(average = mean(us_rating), .groups = "drop") %>%
+  arrange(desc(average)) %>%
+  top_n(10))
+
+av_rating_genres_plot <- av_rating_genres %>% 
+  ggplot(aes(x=reorder(genre, average), y=average, text = paste(
+    "Ocena:", round(average,1))))+
+  geom_bar(stat = "identity", color = "orange", linewidth = 0.6)+
+  coord_flip()+
+  labs(x = "Gatunek", y = "Średnia ocena Dawida", 
+       title = "Najwyżej oceniane gatunki")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())
+
+ggplotly(av_rating_genres_plot, tooltip = "text")
+```
+
+#### Reżyserzy
+
+```{r}
+av_rating_directors <- suppressMessages(films_data %>%
+  filter(!is.na(us_rating) & !is.na(director)) %>% 
+  group_by(director) %>%
+  filter(n() >= 4) %>%
+  summarise(average = mean(us_rating), .groups = "drop") %>%
+  arrange(desc(average)) %>%
+  top_n(10) %>% 
+  filter(row_number() <= n()-5))
+
+av_rating_directors_plot <- av_rating_directors %>% 
+  ggplot(aes(x=reorder(director, average), y=average, text = paste(
+    "Ocena:", round(average,1))))+
+  geom_bar(stat = "identity", color = "green", linewidth = 0.6)+
+  coord_flip()+
+  labs(x = "Reżyser", y = "Średnia ocena Dawida", title = 
+         "Najwyżej oceniani reżyserzy")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_y_continuous(
+    breaks = seq(0, 9, by = 1),
+    limits = c(0, 9))
+ggplotly(av_rating_directors_plot, tooltip = "text")
+```
+
+#### Kraje
+
+```{r}
+av_rating_countries <- suppressMessages(films_data %>%
+  filter(!is.na(us_rating) & !is.na(country)) %>% 
+  group_by(country) %>%
+  filter(n() >= 4) %>%
+  summarise(average = mean(us_rating), .groups = "drop") %>%
+  arrange(desc(average)) %>%
+  top_n(10))
+
+av_rating_countries_plot <- av_rating_countries %>% 
+  ggplot(aes(x=reorder(country, average), y=average, text = paste(
+    "Ocena:", round(average,1))))+
+  geom_bar(stat = "identity", color = "lightblue", linewidth = 0.7)+
+  coord_flip()+
+  labs(x = "Kraj", y = "Średnia ocena Dawida", title = "Najwyżej oceniane kraje")+
+  theme_minimal()+
+  theme(axis.title.y = element_blank())+
+  scale_x_discrete(labels=c("Dania", "Włochy", "Szwecja", "Rosja",
+                            "Korea Południowa", "Meksyk", "Japonia", "Chiny",
+                            "Hong Kong", "Irlandia"))
+
+ggplotly(av_rating_countries_plot, tooltip = "text")
+```
+:::
+
+**Wnioski:**
+
+-   **Najwyżej oceniane gatunki:**
+
+    Wysoka pozycja dla filmów-noir oraz gangsterkich sugeruje docenie stylu i klimatu mrocznych historii kryminalnych. Dramaty sądowe sugerują zainteresowanie psychologicznymi dyskusjami i moralnymi dylematami. Gatunek surrealistyczny może wskazywać na upodobanie do kina eksperymentalnego. Kino psychologiczne i dokumentalizowane wskazują na zainteresowanie bardziej głębokimi, realistycznymi historiami. Pozycja westernu i sztuk walki prawdopodobnie jest wynikową zamiłowania do klasyków kina, wśród, których można znaleźć dużo filmów o dzikim zachodzie i filmy Akiry Kurosawy uważane za arcydzieła kinematografii. Wysoka średnia ocen dla dramatów i dokumentów pokazuje, że Dawid ceni filmy o poważnej tematyce, często tworzące głębokie studium postaci/sytuacji. Najwyżej oceniane gatunki to w przeważającej mierze odmiany kina ambitnego i klasycznego. Wysokie średnie sugerują, że sięga on po topowe tytuły w danej kategorii i mocno je docenia.
+
+-   **Najwyżej oceniani reżyserzy:**
+
+    Najwyższa pozycja Stanleya Kubricka świadczy o tym, że każdy jego filmu jest ceniony bardzo wysoko. Kubrick jest znany z perfekcjonizmu i wizjonerskiego stylu, co może być kluczowym czynnikiem. Sidney Lumet zasłynął dramatami sądowymi i psychologicznymi, co pasuje do wysokiego miejsca w rankingu Dawida. Akira Kurosawa to japoński mistrz kina samurajskiego. Jego filmy uznawane są za arcydzieła, więc jego obecność nie zaskakuje. Alfonso Cuarón łączy autorskie, kameralne podejście z widowiskowością, co widocznie trafia w gust Dawida. Filmy Nicolasa Windinga Refna często dzielą widzów, ale Dawid może cenić nieszablonowość i neonowy styl reżysera. Forman i Kieślowski to z kolei uznane nazwiska w historii kina europejskiego. Paul Thomas Anderson słynie ze złożonych narracji i specyficznego stylu, Alan Parker notomiast tworzy różnorodne gatunkowo filmy. Dawid najwyżej ocenia kino autorskie i wizjonerskie, reżyserów, którzy stworzyli filmowe arcydzieła, bądź wywrócili do góry nogami schematy gatunkowe.
+
+-   **Najwyżej oceniane kraje:**
+
+    Irlandia na pierwszym miejscu może się wydawać zaskakująca, wynika to z faktu, że Dawid obejrzał relatywnie niewiele irlandzkich produkcji, ale były to tytuły wysoko cenione. Dla Hong Kongu i Chin wysokie średnie będą wynikać z oglądania głównie najlepszych dzieł. W przypadku Japonii napewno wpływ na pozycję mają dzieła Kurosawy. W Meksyku i Korea Południowej powstaje kino wyróżniające się świeżym stylem (np. filmy Guillermo del Toro z Meksyku czy Bong Joon-ho z Korei). Jeśli Dawid ogląda głównie nagradzane czy cenione tytuły z tych krajów, to średnia potrafi być bardzo wysoka. Kino rosyjskie/radzieckie (Tarkowski) jest uznawane za mocno artystyczne i przy skupieniu się na klasyce Dawid wysoko je ocenia. Włochy to w dużej mierze spaghetti westerny Sergio Leone cieszące się powszechnym uznaniem. Najwyżej oceniane kraje to często te, z których Dawid ogląda głównie największe działa kinematografii. Zgodnie z tym mniejsza liczba tytułów, ale wyższa jakość ma duży wpływ na wysoką średnią.
+
+### Najczęściej oglądani reżyserzy vs średnia ich ocen
+
+```{r}
+directors2 <- films_data %>% 
+  count(director, sort = TRUE) %>% 
+  filter(!is.na(director)) %>% 
+  filter(n >= 8)
+
+av_rating_directors2 <- films_data %>%
+  filter(!is.na(us_rating) & !is.na(director)) %>% 
+  group_by(director) %>%
+  summarise(average = mean(us_rating), .groups = "drop") %>%
+  arrange(desc(average))
+
+directors_bubble <- merge(directors2, av_rating_directors2, by="director")
+
+directors_plot <- directors_bubble %>% 
+  ggplot(aes(x=average, y=n, size=n, color=director, text = paste(
+      "Reżyser:", director,
+      "<br>Liczba filmów:", n,
+      "<br>Średnia ocena:", round(average,1))))+
+  geom_point(alpha=0.7)+
+  scale_size(range = c(5, 15))+
+  theme_minimal()+
+  theme(legend.position="none")+
+  labs(x="Średnia ocena", y="Liczba obejrzanych filmów",
+       title="Najczęściej oglądani reżyserzy vs średnia ocen")+
+  scale_y_continuous(
+    limits = c(7, 30))
+
+ggplotly(directors_plot, tooltip = "text")
+```
+
+**Wnioski:**
+
+-   Widzimy, że duża liczba obejrzanych filmów nie zawsze idzie w parze z wysoką średnią ocen (Ridley Scott, Tim Burton). Niektórzy twórcy są regularnie śledzeni, ale ich oceny są różne. Z kolei inni zyskują niemal wyłącznie wysokie oceny, jeśli tworzą kino wyjątkowe i spójne (Stanley Kubrick).
+
+-   Reżyserzy z dużą filmografią plasują się daleko na osi Y (Woody Allen, Steven Spielberg), ale średnia ocena nie jest aż tak wysoka. Ci z mniejszą liczbą filmów, ale wybitną jakością, będą nisko na osi Y, za to daleko w prawo. Wyraźnie widać więc, że liczba obejrzanych tytułów nie zawsze idzie w parze z wysoką średnią.
+
+### Mapa najczęściej występujących państw
+
+```{r}
+countries_all <- films_data %>% 
+  count(country, sort = TRUE)
+
+world_map <- maps::map("world", fill = TRUE, plot = FALSE)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+countries_all[21,1] = "Czechia"
+countries_all[1,1] = "United States of America"
+countries_all[30,1] = "Brazil"
+
+world_with_data <- world %>%
+  left_join(countries_all, by = c("name" = "country"))
+
+mybins <- c(1, 5, 10, 25, 50, 100, 500, 2000)
+mypalette <- colorBin(
+  palette = "YlOrRd", 
+  domain = world_with_data$n,
+  na.color = "transparent", 
+  bins = mybins
+)
+
+leaflet(world_with_data) %>%
+  addTiles() %>%
+  setView(lat = 10, lng = 0, zoom = 1) %>% 
+  addPolygons(
+    fillColor = ~mypalette(n),
+    stroke = TRUE,
+    weight = 0.3,
+    color = "white",
+    fillOpacity = 0.9,
+    label = ~paste(name, ": ", n, " films"),
+    highlight = highlightOptions(weight = 3, color = "#666", bringToFront = TRUE)
+  ) %>%
+  addLegend(
+    pal = mypalette,
+    values = world_with_data$n,
+    title = "Liczba filmów",
+    position = "bottomleft",
+    opacity = 0.5
+  )
+```
+
+**Wnioski:**
+
+-   Najciemniejszy kolor przykrywa terytorium USA, co koresponduje z wcześniejszymi wykresami pokazującymi, że Dawid obejrzał zdecydowanie najwięcej filmów właśnie z tego kraju. Intensywnie wyróżniają się Polska, Wielka Brytania, Francja czy Włochy. Potwierdza to, że obok dominującej kinematografii amerykańskiej Dawid dość często sięga po kino europejskie, w szczególności rodzime. Silnie zarysowane jest też terytorium Kanady i Niemiec. Mniejsze kraje europejskie odznaczają się umiarkowaną liczbą tytułów, ale nadal obecną.
+
+-   W Azji największą uwagę zwracają Chiny i Japonia, a także Korea Południowa. Potwierdza to częste pojawianie się filmów z Dalekiego Wschodu. Mimo to istnieje zaintersowanie innymi azjatyckimi krajami np. Tajlandią. Australia widoczna jest w intensywniejszej barwie, co świadczy o wciąż wyróżniającej się ilości tytułów. Ameryka Południowa wykazuje się raczej umiarkowanym zainteresowaniem. Afryka pozostaje niemalże niewidoczna z tylko dwoma państwami wyróżnionymi na mapie.
+
+-   Największe jest zainteresowanie Stanami Zjednoczymi i kinem europejskim, głównie polskim, mimo to pozostałe cześci świata nie pozostają ignorowane. Największy wpływ na taki razkład mają obowiązki wynikające z pracy recenzenta, ale również osobiste preferencje, choć bardziej zróżnicowane jeśli chodzi o dobór filmów.
+
+## Podsumowanie
+
+Przeprowadzona analiza obejmowała **ponad 3000 filmów** obejrzanych przez **Dawida Adamka** – recenzenta filmowego, szczególnie aktywnego na portalu Filmweb. Najważniejsze wnioski:
+
+-   **Ambitna klasyka vs. szeroki mainstream**\
+    Dawid najwyżej ceni dawne arcydzieła i kino artystyczne, co przejawia się w analizach dekad (najwyższe oceny dla lat 40.–60.) oraz gatunków (film-noir, dramat sądowy). Równocześnie, z racji bycia recenzentem, ogląda także dużą liczbę nowości oraz popkulturowych hitów, które często nie zdobywają na tyle wysokich ocen, ale silnie zawyżają statystyki liczebne , przy jednoczesnym obniżaniu średnich ocen.
+
+-   **Ukierunkowanie na uznanych reżyserów**\
+    Stanley Kubrick, Akira Kurosawa, Sidney Lumet i Miloš Forman czy Krzysztof Kieślowski to reżyserzy regularnie wysoko oceniani, co wskazuje, że jeżeli twórca ma reputację autora przełomowych dzieł, Dawid zwykle wysoko go ocenia. Z kolei reżyserzy płodni (Woody Allen, Steven Spielberg) czy kontrowersyjni (Patryk Vega) osiągają większą liczbę filmów w kolekcji, ale średnia jest niższa i w niektórych wypadkach bardzo niska.
+
+-   **Globalny ogląd z lokalnym ukierunkowaniem**\
+    Dominacja USA i Polski pokazuje zarówno wpływ globalnej dystrybucji (wszechobecność kina amerykańskiego), jak i lokalnej kultury (polskie premiery). Jakkolwiek Dawid jest otwarty na kinematografię azjatycką i europejską (wysokie oceny np. dla kina japońskiego, francuskiego, włoskiego), to dostępność i popularność amerykańskich produkcji nadal przesądza o liczebnej przewadze kina Hollywood.
+
+Zestawienie statystyk filmów obejrzanych przez Dawida Adamka prezentuje **dwa oblicza** jego gustu:
+
+-   Z jednej strony **bardzo szeroki wachlarz oglądanych tytułów**, także filmów niskobudżetowych i kontynuacji, co zaniża średnią ocen w nowszych latach.
+
+-   Z drugiej **wielkie uznanie dla klasyków** i arcydzieł kina, czego dowodem są bardzo wysokie oceny, szczególnie w kategoriach film-noir, dramat sądowy czy western, oraz dla reżyserów takich jak Kubrick, Lumet, Kurosawa, Forman, Kieślowski.
+
+W odniesieniu do postawionych **hipotez**:
+
+1.  **Hipoteza o preferencji dla starszego kina** została potwierdzona: najwyższe średnie oceny dotyczą lat 40.–60. i gatunków film-noir, dramat sądowy.
+2.  **Selektywny wybór klasyki**: wyjaśnia wysokie pozycje Kurosawy, Kubricka, Lumeta w zestawieniu, co powoduje, że w bardziej odległych dekadach lub niszowych gatunkach nie ma słabych i nisko ocenionych filmów.
+3.  **Dominacja kina USA** przy jednoczesnym docenianiu autorskiego kina światowego – w ilości dominują Stany Zjednoczone, lecz wśród najwyższych not często pojawiają się filmy azjatyckie i europejskie (Hongkong, Japonia, Francja).
+4.  **Renoma reżysera a wysoka ocena**: niemal wszystkie filmy Kubricka czy Kurosawy mają wyższe noty niż średnia, co potwierdza istotne połączenie pomiędzy ogólnym uznaniem a bardzo pozytywną oceną Dawida.
+5.  **Najniższa nota, a ocena widzów**: więkoszść filmów ocenionych przez Dawida najniżej, jest przez społeczność Filmwebu bardziej doceniana co wynika z różnic gustów i upodobań w wielu grupach widzów, wyjątkiem są filmy definitywnie nieudane pod każdym względem
+
+**Reasumując**, analiza potwierdza, że Dawid Adamek łączy **szerokie spektrum** oglądanych tytułów z wyraźnym upodoniem **klasycznej i artystycznej** kinematografii. Jednocześnie przejawia **surowe** podejście do filmów **słabych jakościowo**. Składa się to w spójny obraz widza o **rozległych horyzontach**, doceniającego zarówno klasykę, jak i współczesne kino, lecz jednocześnie w zdecydowanej większości wyjątkowo krytycznego wobec produkcji\*mało wartościowych artystycznie.
+
+------------------------------------------------------------------------
+
+<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+
+Informacje o sesji
+
+</button>
+
+::: {#collapseOne .accordion-collapse .collapse}
+<div>
+
+```{r}
+sessionInfo()
+```
+
+</div>
+:::
