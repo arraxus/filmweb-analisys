@@ -96,7 +96,7 @@ Następnie dane zostały uzupełnione informacjami pochodzącymi ze stron dedyko
 Poniżej znajdują się wszystkie dane potrzebne do analizy w formie interaktywnej tabeli z możliwością wyszukiwania i sortowania konkretnych wartości:
 
 ```{r}
-datatable(films_data)
+datatable(films_data, style="bootstrap4")
 ```
 
 ## Przetworzenie i oczyszczenie danych
@@ -669,7 +669,7 @@ Informacje o sesji
 
 </button>
 
-::: {#collapseOne .accordion-collapse .collapse}
+:::: {#collapseOne .accordion-collapse .collapse}
 <div>
 
 ```{r}
@@ -677,4 +677,4 @@ sessionInfo()
 ```
 
 </div>
-:::
+::::

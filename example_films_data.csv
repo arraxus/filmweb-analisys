@@ -1,0 +1,100 @@
+"name","year","time","av_rating","director","country","genre1","genre2","rating","is_fav"
+"Czarne lustro: Bandersnatch",2018,90,6.9,"David Slade","USA","Thriller","Sci-Fi",7,FALSE
+"Rzeka wichru",1989,92,5.1,"Steven Lisberger","Wielka Brytania","Przygodowy","Sci-Fi",3,FALSE
+"Substancja",2024,140,6.9,"Coralie Fargeat","USA","Horror",NA,8,TRUE
+"W ciemność. Star Trek",2013,129,7.1,"J.J. Abrams","USA","Akcja","Sci-Fi",7,FALSE
+"Star Trek",2009,126,6.9,"J.J. Abrams","USA","Akcja","Sci-Fi",7,FALSE
+"Moon",2009,97,7.3,"Duncan Jones","Wielka Brytania","Dramat","Sci-Fi",8,TRUE
+"Symetria",2003,99,7.7,"Konrad Niewolski","Polska","Dramat",NA,9,FALSE
+"Piękna katastrofa 2",2024,100,3.8,"Roger Kumble","USA","Dramat","Komedia",2,FALSE
+"Pulp Fiction",1994,154,8.3,"Quentin Tarantino","USA","Gangsterski",NA,10,FALSE
+"Nienawistna ósemka",2015,168,7.7,"Quentin Tarantino","USA","Western",NA,9,TRUE
+"Czas krwawego księżyca",2023,206,7.1,"Martin Scorsese","USA","Kryminał",NA,9,FALSE
+"Zdumiewająca historia Henry’ego Sugara",2023,39,6.7,"Wes Anderson","USA","Przygodowy","Krótkometrażowy",8,FALSE
+"Zabójstwo Jesse'ego Jamesa przez tchórzliwego Roberta Forda",2007,160,7.2,"Andrew Dominik","USA","Biograficzny","Dramat",9,FALSE
+"Wielki Gatsby",2013,142,7.3,"Baz Luhrmann","Australia","Melodramat",NA,8,FALSE
+"Pan życia i śmierci",2005,122,7.6,"Andrew Niccol","USA","Dramat",NA,7,FALSE
+"Siedem",1995,127,8.3,"David Fincher","USA","Kryminał","Thriller",10,TRUE
+"Green Book",2018,130,8.2,"Peter Farrelly","USA","Dramat","Komedia",8,TRUE
+"Deadpool & Wolverine",2024,127,7,"Shawn Levy","USA","Komedia","Akcja",7,FALSE
+"Diuna: Część druga",2024,166,8.2,"Denis Villeneuve","USA","Sci-Fi",NA,10,TRUE
+"Furiosa: Saga Mad Max",2024,148,6.4,"George Miller","Australia","Sensacyjny","Sci-Fi",8,FALSE
+"Chłopi",2023,116,8,"DK Welchman","Polska","Animacja","Dramat",9,TRUE
+"Co gryzie Gilberta Grape'a",1993,118,7.8,"Lasse Hallström","USA","Dramat",NA,8,FALSE
+"Matka Joanna od Aniołów",1961,103,7.8,"Jerzy Kawalerowicz","Polska","Dramat","Psychologiczny",9,FALSE
+"Lucy",2014,90,6.3,"Luc Besson","Francja","Akcja","Sci-Fi",4,FALSE
+"Meg 2: Głębia",2023,116,4.6,"Ben Wheatley","Chiny","Horror","Akcja",3,FALSE
+"Battleship: Bitwa o Ziemię",2012,131,5.9,"Peter Berg","USA","Sci-Fi",NA,3,FALSE
+"Inni ludzie",2021,106,6.5,"Aleksandra Terpińska","Polska","Dramat","Muzyczny",5,FALSE
+"Sala samobójców. Hejter",2020,130,6.9,"Jan Komasa","Polska","Thriller",NA,9,TRUE
+"Psie pazury",2021,125,6.8,"Jane Campion","Wielka Brytania","Dramat","Western",9,TRUE
+"Gladiator",2000,155,8.1,"Ridley Scott","USA","Dramat historyczny",NA,10,FALSE
+"Donnie Darko",2001,113,7.7,"Richard Kelly","USA","Dramat",NA,9,TRUE
+"Boże Ciało",2019,115,7.7,"Jan Komasa","Polska","Obyczajowy",NA,10,TRUE
+"Aż poleje się krew",2007,158,7.7,"Paul Thomas Anderson","USA","Dramat obyczajowy",NA,10,TRUE
+"Amator",1979,117,8,"Krzysztof Kieślowski","Polska","Obyczajowy","Psychologiczny",9,FALSE
+"Wielki Szu",1982,96,7.7,"Sylwester Chęciński","Polska","Dramat","Sensacyjny",8,FALSE
+"Nóż w wodzie",1961,90,7.8,"Roman Polański","Polska","Dramat","Psychologiczny",7,FALSE
+"Miś",1980,111,7.8,"Stanisław Bareja","Polska","Komedia",NA,8,FALSE
+"Ziemia obiecana",1974,179,7.9,"Andrzej Wajda","Polska","Obyczajowy",NA,9,FALSE
+"Tron: Dziedzictwo",2010,127,6.6,"Joseph Kosinski","USA","Akcja","Sci-Fi",7,TRUE
+"TRON",1982,96,7,"Steven Lisberger","USA","Przygodowy","Sci-Fi",5,FALSE
+"Bo się boi",2023,179,6.2,"Ari Aster","Kanada","Horror","Komedia",7,FALSE
+"Midsommar. W biały dzień",2019,147,6.8,"Ari Aster","USA","Horror",NA,10,TRUE
+"Nie martw się, kochanie",2022,123,6.2,"Olivia Wilde","USA","Thriller",NA,5,FALSE
+"Uciekające kurczaki: Era nuggetsów",2023,101,5.9,"Sam Fell","Wielka Brytania","Animacja","Komedia",6,FALSE
+"Rozmowa",1974,113,7.4,"Francis Ford Coppola","USA","Dramat","Thriller",9,FALSE
+"28 dni później",2002,113,6.9,"Danny Boyle","Wielka Brytania","Horror",NA,8,FALSE
+"Duża ryba",2003,125,7.6,"Tim Burton","USA","Dramat","Fantasy",8,FALSE
+"Łowca androidów",1982,117,7.7,"Ridley Scott","USA","Thriller","Sci-Fi",10,FALSE
+"Coś",1982,109,7.5,"John Carpenter","USA","Horror","Sci-Fi",10,TRUE
+"Brat 2: Misja w Chicago",2000,122,7.3,"Aleksiej Bałabanow","Rosja","Kryminał","Thriller",9,TRUE
+"Brother",1997,96,7.4,"Aleksiej Bałabanow","Rosja","Dramat","Kryminał",NA,FALSE
+"Kruk",1994,102,7.3,"Alex Proyas","USA","Fantasy","Thriller",10,TRUE
+"Ucieczka z Nowego Jorku",1981,99,6.8,"John Carpenter","USA","Akcja","Sci-Fi",7,TRUE
+"Tango i Cash",1989,104,7,"Andriej Konczałowski","USA","Komedia","Sensacyjny",7,FALSE
+"Parasite",2019,132,8.1,"Joon-ho Bong","Korea Południowa","Dramat",NA,10,FALSE
+"Dystrykt 9",2009,112,7.1,"Neill Blomkamp","Nowa Zelandia","Dramat","Sci-Fi",8,FALSE
+"Więzień nienawiści",1998,119,8.2,"Tony Kaye","USA","Dramat",NA,9,FALSE
+"Bogowie ulicy",2012,109,7.7,"David Ayer","USA","Kryminał","Thriller",9,TRUE
+"Johnny Mnemonic",1995,96,6.6,"Robert Longo","USA","Thriller","Akcja",6,FALSE
+"Śmierć Stalina",2017,106,6.8,"Armando Iannucci","Francja","Biograficzny","Dramat",7,TRUE
+"Bodyguard Zawodowiec",2017,118,7.2,"Patrick Hughes","USA","Komedia","Akcja",7,FALSE
+"Batman v Superman: Świt sprawiedliwości",2016,151,5.8,"Zack Snyder","USA","Akcja","Sci-Fi",3,FALSE
+"Bezwstydny Mortdecai",2015,100,6.2,"David Koepp","USA","Komedia","Akcja",3,FALSE
+"Legend",2015,131,7.1,"Brian Helgeland","Wielka Brytania","Biograficzny",NA,7,FALSE
+"Piąty element",1997,126,7.4,"Luc Besson","Francja","Akcja","Sci-Fi",7,FALSE
+"Planeta skarbów",2002,95,7.6,"John Musker","USA","Animacja","Familijny",10,TRUE
+"Austin Powers 2 - Szpieg, który nie umiera nigdy",1999,95,5.7,"Jay Roach","USA","Komedia","Akcja",6,FALSE
+"Oświadczyny po irlandzku",2010,100,6.7,"Anand Tucker","USA","Komedia rom.",NA,5,FALSE
+"Nigdy cię tu nie było",2017,85,6.3,"Lynne Ramsay","USA","Dramat","Thriller",7,FALSE
+"Ruby Sparks",2012,104,6.7,"Jonathan Dayton","USA","Fantasy","Komedia rom.",7,FALSE
+"Good Night and Good Luck",2005,93,7.1,"George Clooney","USA","Dramat","Polityczny",6,FALSE
+"Wściekłe pięści Węża",2006,59,7,"Bartosz Walaszek","Polska","Komedia","Akcja",8,FALSE
+"Kapitan Bomba - Zemsta Faraona",2012,80,7.5,"Bartosz Walaszek","Polska","Komedia","Sci-Fi",10,TRUE
+"Sarnie żniwo, czyli pokusa statuetkowego szlaku",2006,60,7.3,"Bartosz Walaszek","Polska","Komedia","Sensacyjny",10,FALSE
+"Austin Powers: Agent specjalnej troski",1997,95,5.7,"Jay Roach","USA","Komedia","Akcja",7,FALSE
+"Sala samobójców",2011,117,6.3,"Jan Komasa","Polska","Thriller","Romans",5,FALSE
+"Locke",2013,85,7,"Steven Knight","USA","Dramat","Thriller",6,FALSE
+"Co robimy w ukryciu",2014,86,7.2,"Jemaine Clement","Nowa Zelandia","Horror","Komedia",7,FALSE
+"Hot Fuzz - Ostre psy",2007,121,7.1,"Edgar Wright","Wielka Brytania","Komedia kryminalna",NA,7,FALSE
+"Bronson",2008,92,7.2,"Nicolas Winding Refn","Wielka Brytania","Biograficzny","Dramat",6,FALSE
+"Pi",1998,85,7.4,"Darren Aronofsky","USA","Dramat","Thriller",9,TRUE
+"Easy Rider",1969,94,7.4,"Dennis Hopper","USA","Dramat obyczajowy",NA,7,FALSE
+"Candy",2006,116,7.4,"Neil Armfield","Australia","Dramat","Romans",7,FALSE
+"Mutafukaz",2017,94,6.7,"Shôjirô Nishimi","Francja","Akcja","Sci-Fi",6,FALSE
+"Prestiż",2006,130,8.1,"Christopher Nolan","USA","Dramat","Thriller",8,FALSE
+"Le Mans '66",2019,152,7.9,"James Mangold","USA","Biograficzny","Dramat",8,TRUE
+"Pacific Rim",2013,131,6.5,"Guillermo del Toro","USA","Akcja","Sci-Fi",6,FALSE
+"Raport mniejszości",2002,145,7.3,"Steven Spielberg","USA","Thriller","Sci-Fi",8,FALSE
+"Bolek i Lolek na Dzikim Zachodzie",1986,71,7.1,"Stanisław Dülz","Polska","Animacja","Dla dzieci",8,TRUE
+"Lot nad kukułczym gniazdem",1975,133,8.5,"Miloš Forman","USA","Dramat","Psychologiczny",9,FALSE
+"Przerwana lekcja muzyki",1999,127,7.9,"James Mangold","USA","Biograficzny","Dramat",8,FALSE
+"Jesteś Bogiem",2012,124,6.7,"Leszek Dawid","Polska","Biograficzny","Dramat",8,TRUE
+"Nerve",2016,96,6.8,"Henry Joost","USA","Thriller",NA,5,FALSE
+"Bracia ze stali",2023,132,7.2,"Sean Durkin","USA","Biograficzny","Dramat",7,FALSE
+"Lawrence z Arabii",1962,216,7.6,"David Lean","Wielka Brytania","Dramat","Przygodowy",9,FALSE
+"American Beauty",1999,122,7.6,"Sam Mendes","USA","Dramat","Komedia",8,FALSE
+"Zabójca",2023,119,6.2,"David Fincher","USA","Kryminał","Thriller",7,FALSE
+"Blade: Wieczny łowca II",2002,117,6.9,"Guillermo del Toro","USA","Horror","Akcja",7,TRUE
+"Blade - Wieczny łowca",1998,120,7,"Stephen Norrington","USA","Horror","Akcja",8,TRUE
